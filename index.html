@@ -1,137 +1,370 @@
 <!DOCTYPE html>
-<html lang="hi"> 
+<html lang="hi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Python Code + Output</title>
+  <title>Python Playground 🐍</title>
+
+  <!-- CodeMirror (editor + syntax highlighting) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
 
   <style>
-    /* ===== CSS = design ===== */
+    /* ================== CSS ================== */
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --success: #4ade80;
+      --error: #f87171;
+    }
+
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      background: var(--bg);
+      color: var(--text);
       height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
+    /* ---------- Header ---------- */
     header {
-      background: #1e293b;
-      padding: 12px 20px;
+      background: var(--panel);
+      padding: 10px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #334155;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
     }
     header h1 {
-      font-size: 17px;
+      font-size: 16px;
       margin: 0;
-      color: #38bdf8;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .status {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--muted);
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+    .status.ready   { background: rgba(74, 222, 128, 0.15); color: var(--success); }
+    .status.running { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+    .status.error   { background: rgba(248, 113, 113, 0.15); color: var(--error); }
+
+    /* ---------- Toolbar ---------- */
+    .toolbar {
+      background: var(--panel);
+      padding: 8px 16px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
     }
 
-    button {
-      background: #38bdf8;
+    select, button {
+      font-family: inherit;
+      font-size: 13px;
+      border-radius: 6px;
+      padding: 7px 12px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    select:hover, button:hover {
+      border-color: var(--accent);
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--accent);
       color: #0f172a;
       border: none;
-      padding: 9px 20px;
-      border-radius: 8px;
-      font-size: 15px;
       font-weight: bold;
-      cursor: pointer;
+      padding: 8px 20px;
     }
-    button:hover { background: #0ea5e9; }
-    button:disabled {
-      background: #475569;
-      color: #94a3b8;
-      cursor: not-allowed;
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+    .btn-icon {
+      padding: 7px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
 
-    /* ---- Side-by-side layout ---- */
+    .spacer { flex: 1; }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ---------- Main layout ---------- */
     .container {
       flex: 1;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1px;
-      background: #334155;
-      overflow: hidden;
+      background: var(--border);
+      min-height: 0;
     }
 
     .panel {
       display: flex;
       flex-direction: column;
-      background: #0f172a;
-      overflow: hidden;
+      background: var(--bg);
+      min-height: 0;
     }
 
     .panel-title {
       padding: 8px 15px;
-      background: #1e293b;
-      font-size: 13px;
-      color: #94a3b8;
-      border-bottom: 1px solid #334155;
+      background: var(--panel);
+      font-size: 12px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
       text-transform: uppercase;
       letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
     }
 
-    textarea {
+    .panel-title .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .panel-title .actions button {
+      padding: 3px 9px;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+
+    /* ---------- Editor ---------- */
+    .editor-wrap {
       flex: 1;
-      background: #0f172a;
-      color: #e2e8f0;
-      border: none;
-      padding: 15px;
+      position: relative;
+      min-height: 0;
+    }
+    .CodeMirror {
+      position: absolute;
+      inset: 0;
+      height: auto;
       font-family: 'Consolas', 'Courier New', monospace;
       font-size: 14px;
       line-height: 1.6;
-      resize: none;
-      outline: none;
     }
 
-    pre {
+    /* ---------- Output ---------- */
+    .output-wrap {
       flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      background: #0b1220;
+    }
+    pre#output {
       margin: 0;
       padding: 15px;
       font-family: 'Consolas', 'Courier New', monospace;
       font-size: 14px;
-      line-height: 1.6;
-      overflow-y: auto;
+      line-height: 1.7;
       white-space: pre-wrap;
       word-wrap: break-word;
-      color: #4ade80;
+      color: var(--success);
     }
-    pre.error { color: #f87171; }
+    pre#output.error { color: var(--error); }
+    pre#output .placeholder { color: var(--muted); font-style: italic; }
 
-    /* ---- Mobile: ऊपर-नीचे ---- */
+    /* ---------- Toast ---------- */
+    .toast {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: #0f172a;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      z-index: 1000;
+      animation: slideUp 0.25s ease;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translate(-50%, 15px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    /* ---------- Loading overlay ---------- */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      z-index: 10;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay p {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* ---------- Mobile ---------- */
     @media (max-width: 700px) {
+      header h1 { font-size: 14px; }
+      .hint { display: none; }
       .container {
         grid-template-columns: 1fr;
         grid-template-rows: 1fr 1fr;
       }
+      .btn-primary { padding: 7px 14px; font-size: 13px; }
+      select, button { font-size: 12px; padding: 6px 10px; }
     }
   </style>
 </head>
 
 <body>
+  <!-- ============ Header ============ -->
   <header>
-    <h1>🐍 Python Code + Output</h1>
-    <button id="runBtn" disabled>⏳ Python लोड हो रहा है...</button>
+    <h1>🐍 Python Playground</h1>
+    <span id="status" class="status">⏳ Python लोड हो रहा है...</span>
   </header>
 
+  <!-- ============ Toolbar ============ -->
+  <div class="toolbar">
+    <select id="examples" title="उदाहरण चुनो">
+      <option value="">📚 उदाहरण चुनो...</option>
+      <option value="basic">1. नमस्ते (Basic)</option>
+      <option value="variables">2. Variable & Data Type</option>
+      <option value="calculator">3. Calculator</option>
+      <option value="evenodd">4. Even / Odd</option>
+      <option value="list">5. List (सूची)</option>
+      <option value="table">6. Table Printer</option>
+      <option value="functions">7. Functions</option>
+    </select>
+    <button id="resetBtn" class="btn-icon" title="Default code वापस लाओ">🔄 Reset</button>
+    <button id="clearBtn" class="btn-icon" title="Editor खाली करो">🗑️ Clear</button>
+    <span class="spacer"></span>
+    <span class="hint">💡 Ctrl + Enter = Run</span>
+    <button id="runBtn" class="btn-primary" disabled>▶ Run चलाओ</button>
+  </div>
+
+  <!-- ============ Main ============ -->
   <div class="container">
-    <!-- बायीं तरफ: Code -->
+    <!-- Code panel -->
     <div class="panel">
-      <div class="panel-title">📝 Code (यहाँ लिखो / बदलो)</div>
-      <textarea id="codeInput" spellcheck="false"># ================================
-#   मेरा पहला Python Program
-# ================================
+      <div class="panel-title">
+        <span>📝 Code</span>
+        <div class="actions">
+          <button id="copyCodeBtn" title="Code copy करो">📋 Copy</button>
+        </div>
+      </div>
+      <div class="editor-wrap" id="editorWrap">
+        <textarea id="codeInput"></textarea>
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="spinner"></div>
+          <p>Python लोड हो रहा है... पहली बार 5–10 सेकंड लग सकते हैं ⏳</p>
+        </div>
+      </div>
+    </div>
 
-def namaste(naam):
-    print("नमस्ते,", naam, "! 🙏")
+    <!-- Output panel -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>▶️ Output</span>
+        <div class="actions">
+          <button id="copyOutBtn" title="Output copy करो">📋 Copy</button>
+          <button id="downloadBtn" title="Output download करो">⬇️ Download</button>
+          <button id="clearOutBtn" title="Output साफ़ करो">🗑️</button>
+        </div>
+      </div>
+      <div class="output-wrap">
+        <pre id="output"><span class="placeholder">यहाँ result दिखेगा... ऊपर ▶ Run चलाओ दबाओ</span></pre>
+      </div>
+    </div>
+  </div>
 
-def calculator(a, b, op):
+  <!-- ============ Scripts ============ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+
+  <script>
+    // ==========================================
+    //   JavaScript — page का दिमाग
+    // ==========================================
+
+    const runBtn        = document.getElementById("runBtn");
+    const resetBtn      = document.getElementById("resetBtn");
+    const clearBtn      = document.getElementById("clearBtn");
+    const copyCodeBtn   = document.getElementById("copyCodeBtn");
+    const copyOutBtn    = document.getElementById("copyOutBtn");
+    const downloadBtn   = document.getElementById("downloadBtn");
+    const clearOutBtn   = document.getElementById("clearOutBtn");
+    const examplesSel   = document.getElementById("examples");
+    const output        = document.getElementById("output");
+    const statusEl      = document.getElementById("status");
+    const overlay       = document.getElementById("loadingOverlay");
+
+    const STORAGE_KEY = "python-playground-code";
+    let pyodide = null;
+    let cm = null;
+
+    // ---------- उदाहरण ----------
+    const EXAMPLES = {
+      basic: `print("नमस्ते दुनिया")
+print("मेरा नाम Prince है")
+print("Python सीख रहा हूँ")`,
+
+      variables: `naam = "Prince"
+umar = 20
+height = 5.8
+student = True
+
+print("नाम     :", naam)
+print("उम्र     :", umar)
+print("लंबाई    :", height)
+print("विद्यार्थी:", student)
+
+print("\\nTypes:")
+print(type(naam).__name__)
+print(type(umar).__name__)
+print(type(height).__name__)
+print(type(student).__name__)`,
+
+      calculator: `def calculator(a, b, op):
     if op == "+": return a + b
     elif op == "-": return a - b
     elif op == "*": return a * b
@@ -140,95 +373,241 @@ def calculator(a, b, op):
             return "0 से भाग नहीं होता!"
         return a / b
 
-def even_odd(n):
-    return "Even" if n % 2 == 0 else "Odd"
+print("10 + 5 =", calculator(10, 5, "+"))
+print("10 - 5 =", calculator(10, 5, "-"))
+print("10 * 5 =", calculator(10, 5, "*"))
+print("10 / 5 =", calculator(10, 5, "/"))
+print("10 / 0 =", calculator(10, 0, "/"))`,
+
+      evenodd: `def even_odd(n):
+    if n % 2 == 0:
+        return "Even"
+    else:
+        return "Odd"
+
+for n in [1, 2, 3, 4, 5, 10, 15, 20]:
+    print(f"{n} → {even_odd(n)}")`,
+
+      list: `fruits = ["आम", "केला", "सेब", "संतरा"]
+
+print("पूरी list:", fruits)
+print("कुल", len(fruits), "फल हैं")
+
+print("\\nएक-एक करके:")
+for fruit in fruits:
+    print(" -", fruit)
+
+fruits.append("अंगूर")
+print("\\nजोड़ने के बाद:", fruits)
+
+numbers = [10, 25, 8, 40, 15]
+print("\\nNumbers:", numbers)
+print("सबसे बड़ा:", max(numbers))
+print("सबसे छोटा:", min(numbers))
+print("कुल जोड़:", sum(numbers))`,
+
+      table: `n = 7
+
+print(f"=== {n} का Table ===")
+for i in range(1, 11):
+    print(f"{n} x {i} = {n * i}")`,
+
+      functions: `def namaste(naam):
+    print("नमस्ते,", naam, "! 🙏")
 
 def square(n):
     return n * n
 
-# ---- मुख्य program ----
-print("=" * 30)
-print("  मेरा पहला Python Program")
-print("=" * 30)
+def cube(n):
+    return n * n * n
 
-namaste("आरव")
+namaste("Prince")
 namaste("सीता")
 
-print("\nEven / Odd:")
-for num in [3, 8, 15, 20]:
-    print(f"  {num} → {even_odd(num)}")
-
-print("\nSquare:")
+print("\\nSquare:")
 for n in [2, 5, 9]:
     print(f"  {n}² = {square(n)}")
 
-print("\nCalculator:")
-print("  10 + 5 =", calculator(10, 5, "+"))
-print("  10 * 5 =", calculator(10, 5, "*"))
-print("  10 / 0 =", calculator(10, 0, "/"))
+print("\\nCube:")
+for n in [2, 3, 4]:
+    print(f"  {n}³ = {cube(n)}")`
+    };
 
-print("\n✅ Program खत्म!")
-</textarea>
-    </div>
+    const DEFAULT_CODE = EXAMPLES.basic;
 
-    <!-- दायीं तरफ: Output -->
-    <div class="panel">
-      <div class="panel-title">▶️ Output (यहाँ result दिखेगा)</div>
-      <pre id="output">Python लोड हो रहा है... पहली बार 5–10 सेकंड लग सकते हैं ⏳</pre>
-    </div>
-  </div>
+    // ---------- Status ----------
+    function setStatus(type, text) {
+      statusEl.className = "status " + type;
+      statusEl.innerText = text;
+    }
 
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
-  <script>
-    // ===== JavaScript = page को काम करवाना =====
-    const runBtn    = document.getElementById("runBtn");
-    const codeInput = document.getElementById("codeInput");
-    const output    = document.getElementById("output");
+    // ---------- Toast ----------
+    function showToast(msg) {
+      const t = document.createElement("div");
+      t.className = "toast";
+      t.innerText = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2000);
+    }
 
-    let pyodide = null;
+    // ---------- Editor setup ----------
+    function initEditor() {
+      cm = CodeMirror.fromTextArea(document.getElementById("codeInput"), {
+        mode: "python",
+        theme: "dracula",
+        lineNumbers: true,
+        indentUnit: 4,
+        tabSize: 4,
+        indentWithTabs: false,
+        autoCloseBrackets: true,
+        lineWrapping: true,
+        extraKeys: {
+          "Ctrl-Enter": () => runCode(),
+          "Cmd-Enter":  () => runCode(),
+          "Tab": (editor) => editor.replaceSelection("    ", "end")
+        }
+      });
 
-    // ---- Python load करना ----
-    async function loadPython() {
-      try {
-        pyodide = await loadPyodide({
-          stdout: (text) => appendOutput(text),
-          stderr: (text) => appendOutput(text)
-        });
-        runBtn.disabled = false;
-        runBtn.innerText = "▶ Run चलाओ";
-        output.innerText = "✅ तैयार! ऊपर 'Run चलाओ' दबाओ।";
-      } catch (e) {
-        output.innerText = "❌ Python load नहीं हुआ: " + e.message;
+      // saved code load करो
+      const saved = localStorage.getItem(STORAGE_KEY);
+      cm.setValue(saved || DEFAULT_CODE);
+
+      // code बदलने पर save करो (debounced)
+      let t;
+      cm.on("change", () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          localStorage.setItem(STORAGE_KEY, cm.getValue());
+        }, 500);
+      });
+    }
+
+    // ---------- Output helpers ----------
+    function clearOutput(msg) {
+      output.classList.remove("error");
+      if (msg) {
+        output.innerHTML = '<span class="placeholder">' + msg + '</span>';
+      } else {
+        output.innerText = "";
       }
     }
 
-    // ---- Output में line जोड़ना ----
     function appendOutput(text) {
-      if (output.innerText.startsWith("✅") || output.innerText.startsWith("Python")) {
-        output.innerText = "";
-      }
       output.innerText += text + "\n";
     }
 
-    // ---- Code चलाना ----
+    // ---------- Python load ----------
+    async function loadPython() {
+      try {
+        pyodide = await loadPyodide({
+          stdout: appendOutput,
+          stderr: appendOutput
+        });
+        overlay.style.display = "none";
+        runBtn.disabled = false;
+        setStatus("ready", "✅ तैयार");
+        clearOutput("तैयार! ▶ Run चलाओ दबाओ या Ctrl+Enter");
+      } catch (e) {
+        setStatus("error", "❌ Load नहीं हुआ");
+        overlay.innerHTML = '<p style="color:#f87171">Python load नहीं हुआ: ' + e.message + '</p>';
+      }
+    }
+
+    // ---------- Code run ----------
     async function runCode() {
-      output.classList.remove("error");
-      output.innerText = "";
+      if (!pyodide) return;
+      const code = cm.getValue();
+      clearOutput();
       runBtn.disabled = true;
       runBtn.innerText = "⏳ चल रहा है...";
+      setStatus("running", "⏳ चल रहा है...");
 
+      const start = performance.now();
       try {
-        await pyodide.runPythonAsync(codeInput.value);
+        await pyodide.runPythonAsync(code);
+        const sec = ((performance.now() - start) / 1000).toFixed(2);
+        if (!output.innerText.trim()) {
+          output.innerText = "(कोई output नहीं आया)";
+        }
+        output.innerText += "\n\n--- ⏱️ " + sec + "s में पूरा हुआ ---";
+        setStatus("ready", "✅ तैयार");
       } catch (err) {
         output.classList.add("error");
-        output.innerText += "\n❌ Error:\n" + err.message;
+        // असली error line अलग करो
+        const lines = (err.message || "").split("\n").filter(l => l.trim());
+        const lastLine = lines[lines.length - 1] || "Unknown error";
+        output.innerText = "❌ " + lastLine + "\n\n--- पूरा traceback ---\n\n" + err.message;
+        setStatus("error", "❌ Error आया");
       }
 
       runBtn.disabled = false;
       runBtn.innerText = "▶ Run चलाओ";
     }
 
+    // ---------- Buttons ----------
     runBtn.addEventListener("click", runCode);
+
+    resetBtn.addEventListener("click", () => {
+      if (confirm("Default code वापस लाओ? मौजूदा code हट जाएगा।")) {
+        cm.setValue(DEFAULT_CODE);
+        showToast("Reset हो गया 🔄");
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      if (confirm("Editor खाली कर दें?")) {
+        cm.setValue("");
+        showToast("Editor खाली 🗑️");
+      }
+    });
+
+    copyCodeBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(cm.getValue());
+        showToast("Code copy हो गया! 📋");
+      } catch {
+        showToast("Copy नहीं हो पाया ❌");
+      }
+    });
+
+    copyOutBtn.addEventListener("click", async () => {
+      const text = output.innerText.trim();
+      if (!text) { showToast("पहले Run करो!"); return; }
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("Output copy हो गया! 📋");
+      } catch {
+        showToast("Copy नहीं हो पाया ❌");
+      }
+    });
+
+    downloadBtn.addEventListener("click", () => {
+      const text = output.innerText.trim();
+      if (!text) { showToast("पहले Run करो!"); return; }
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "python-output.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Download हो गया ⬇️");
+    });
+
+    clearOutBtn.addEventListener("click", () => {
+      clearOutput("Output साफ़... ▶ Run दबाओ");
+    });
+
+    examplesSel.addEventListener("change", (e) => {
+      const key = e.target.value;
+      if (!key || !EXAMPLES[key]) return;
+      cm.setValue(EXAMPLES[key]);
+      examplesSel.value = "";
+      showToast("उदाहरण लोड हो गया 📚");
+    });
+
+    // ---------- Start ----------
+    initEditor();
     loadPython();
   </script>
 </body>
